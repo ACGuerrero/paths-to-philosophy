@@ -1,33 +1,55 @@
 from bs4 import BeautifulSoup
 import requests
-baseurl = 'https://en.wikipedia.org/'
-url='https://en.wikipedia.org/wiki/Special:Random'
+base_url = 'https://en.wikipedia.org/'
 
-def stop_at_philosophy(start_url):
-    current_url = start_url
-    print('Starting at: ', start_url)
-    i=0
-    while i<50:
+def obtain_paragraphs(current_url):
+        # We make a request to the current url
         response = requests.get(current_url)
         soup = BeautifulSoup(response.content, 'html.parser')
         body_content = soup.find('div',attrs={'id':'bodyContent'})
         main_article = body_content.find('div',attrs={'id':'mw-content-text'})
-        paragraphs = main_article.find_all('p')
-        first_link = []
-        for paragraph in paragraphs:
-            try:
-                link = paragraph.find('a',recursive=False).get('href')
-                first_link.append(link)
-            except Exception as e:
-                pass
-            if len(first_link) != 0:
-                break
-        print(first_link[0])
-        current_url = baseurl+first_link[0]
-        if first_link[0] == '/wiki/Philosophy':
-            break
+        return main_article.find_all('p')
+
+def obtain_first_link(paragraphs):
+    links = []
+    for paragraph in paragraphs:
+        try:
+            # The recursive=False option allows us to ignore bibliography and references
+            link = paragraph.find('a',recursive=False).get('href')
+            links.append(link)
+        except Exception as e:
+            #If there is no a tag, just continue
+            pass
+        #If previous lines worked, stop looking
+        if len(links) != 0:
+             break
+        return links[False]
+
+
+def main(start_url):
+    current_url = requests.get(start_url).url
+    visited_urls = []
+    visited_urls.append(current_url[len(base_url)-1:])
+
+    print('Starting at ', current_url[len(base_url)-1:])
+    i=0
+    while i<50:
+        paragraphs = obtain_paragraphs(current_url)
+        link = obtain_first_link(paragraphs)
+
+        # Check if we just finished (either loop or philosophy)
+        if link == '/wiki/Philosophy':
+            print(f'It took {i} steps to reach the philosophy page')
+            return i
+        if link in visited_urls:
+             print('Loop found')
+             return None
+        # Update the url to which the next request will be done
+        current_url = base_url+link
+        visited_urls.append(link)
         i+=1
-    print(f'It took {i} steps to reach the philosophy page')
 
 
-stop_at_philosophy(url)
+if __name__ == "__main__":
+    random_article_url='https://en.wikipedia.org/wiki/Special:Random' 
+    main(random_article_url)
