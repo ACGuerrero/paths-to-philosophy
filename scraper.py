@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 import requests
-import threading
+import concurrent.futures
+
+
 base_url = 'https://en.wikipedia.org/'
 
 def soupify(current_url):
@@ -38,25 +40,21 @@ def steps_to_philosophy(start_url):
         # Check if we just finished (either loop or philosophy)
         if link == '/wiki/Philosophy':
             print(f'It took {i} steps to reach the philosophy page')
-            return i
+            return {'start_url' : visited_urls[0],'steps' : i}
         if link in visited_urls:
              print('Loop found')
-             return None
+             return {'start_url' : visited_urls[0],'steps' : None}
         # Update the url to which the next request will be done
         current_url = base_url+link
         visited_urls.append(link)
 
-#main('https://en.wikipedia.org/wiki/Special:Random')
-def main(start_url):
-    threads = []
-    for _ in range(10):
-        t= threading.Thread(target=steps_to_philosophy,args=[start_url])
-        t.start()
-        threads.append(t)
-    for thread in threads:
-        thread.join()
-    
+def main(n):
+    random_article_url='https://en.wikipedia.org/wiki/Special:Random' 
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = [executor.submit(steps_to_philosophy,random_article_url) for _ in range(n)]
+    for result in results:
+        print(result)
 
 if __name__ == "__main__":
-    random_article_url='https://en.wikipedia.org/wiki/Special:Random' 
-    main(random_article_url)
+    n=input('Enter size of batches')
+    main(int(n))
