@@ -37,3 +37,6 @@ ENV/
 env.bak/
 venv.bak/
 .vscode/
+
+# data files
+data.csv
